@@ -140,10 +140,10 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-#CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOWED_ORIGINS = [
+CORS_ALLOW_ALL_ORIGINS = True
+'''CORS_ALLOWED_ORIGINS = [
     os.environ.get("FRONTEND_URL", "")
-]
+]'''
 
 from datetime import timedelta
 
