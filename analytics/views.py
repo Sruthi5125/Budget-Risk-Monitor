@@ -289,34 +289,42 @@ class ExpenseForecastView(APIView):
         if non_zero_count >= 3:
             import math
             import warnings
-            from statsmodels.tsa.arima.model import ARIMA
 
             # Trim leading zeros so ARIMA sees a clean consecutive series
             first_nonzero = next(i for i, x in enumerate(monthly_expenses) if x > 0)
             trimmed = monthly_expenses[first_nonzero:]
             data = np.array(trimmed, dtype=float)
 
-            def _try_arima(order):
+            predicted = None
+
+            # Attempt 1: statsmodels ARIMA(1,1,1)
+            try:
+                from statsmodels.tsa.arima.model import ARIMA
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
-                    fitted = ARIMA(data, order=order).fit()
+                    fitted = ARIMA(data, order=(1, 1, 1)).fit()
                     raw = float(fitted.forecast(steps=1).iloc[0])
-                if math.isnan(raw) or math.isinf(raw):
-                    raise ValueError("non-finite forecast")
-                return max(raw, 0.0)
-
-            predicted = None
-            # Try ARIMA(1,1,1) first; fall back to simpler AR(1) if it fails
-            for order in [(1, 1, 1), (1, 0, 0)]:
-                try:
-                    predicted = _try_arima(order)
+                if not math.isnan(raw) and not math.isinf(raw):
+                    predicted = max(raw, 0.0)
                     method = "arima"
-                    break
+            except Exception:
+                pass
+
+            # Attempt 2: numpy-based AR(1) — fits y = c + phi*y_lag via OLS
+            # This is the autoregressive core of ARIMA and cannot fail with >= 2 points
+            if predicted is None:
+                try:
+                    X = np.column_stack([np.ones(len(data) - 1), data[:-1]])
+                    y = data[1:]
+                    beta, _, _, _ = np.linalg.lstsq(X, y, rcond=None)
+                    raw = float(beta[0] + beta[1] * data[-1])
+                    if not math.isnan(raw) and not math.isinf(raw):
+                        predicted = max(raw, 0.0)
+                        method = "arima"
                 except Exception:
-                    continue
+                    pass
 
             if predicted is None:
-                # Last resort: 3-month moving average of non-zero months
                 non_zero_vals = [x for x in monthly_expenses if x > 0]
                 predicted = float(np.mean(non_zero_vals[-3:]))
                 method = "moving_average"
