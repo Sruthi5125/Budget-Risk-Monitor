@@ -287,22 +287,38 @@ class ExpenseForecastView(APIView):
         method = "insufficient_data"
 
         if non_zero_count >= 3:
-            try:
-                from statsmodels.tsa.arima.model import ARIMA
+            import math
+            import warnings
+            from statsmodels.tsa.arima.model import ARIMA
 
-                # Trim leading zeros so ARIMA sees a clean consecutive series
-                first_nonzero = next(i for i, x in enumerate(monthly_expenses) if x > 0)
-                trimmed = monthly_expenses[first_nonzero:]
-                data = np.array(trimmed, dtype=float)
-                # ARIMA(1,1,1): one lag, first-order differencing, one MA term
-                model = ARIMA(data, order=(1, 1, 1))
-                fitted = model.fit()
-                forecast_result = fitted.forecast(steps=1)
-                predicted = max(float(forecast_result.iloc[0]), 0.0)
-                method = "arima"
-            except Exception:
-                # If ARIMA fails for any reason, use 3-month moving average as fallback
-                predicted = float(np.mean(monthly_expenses[-3:]))
+            # Trim leading zeros so ARIMA sees a clean consecutive series
+            first_nonzero = next(i for i, x in enumerate(monthly_expenses) if x > 0)
+            trimmed = monthly_expenses[first_nonzero:]
+            data = np.array(trimmed, dtype=float)
+
+            def _try_arima(order):
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    fitted = ARIMA(data, order=order).fit()
+                    raw = float(fitted.forecast(steps=1).iloc[0])
+                if math.isnan(raw) or math.isinf(raw):
+                    raise ValueError("non-finite forecast")
+                return max(raw, 0.0)
+
+            predicted = None
+            # Try ARIMA(1,1,1) first; fall back to simpler AR(1) if it fails
+            for order in [(1, 1, 1), (1, 0, 0)]:
+                try:
+                    predicted = _try_arima(order)
+                    method = "arima"
+                    break
+                except Exception:
+                    continue
+
+            if predicted is None:
+                # Last resort: 3-month moving average of non-zero months
+                non_zero_vals = [x for x in monthly_expenses if x > 0]
+                predicted = float(np.mean(non_zero_vals[-3:]))
                 method = "moving_average"
 
         elif non_zero_count > 0:
