@@ -306,6 +306,12 @@ class ExpenseForecastView(APIView):
             predicted = float(np.mean([x for x in monthly_expenses if x > 0]))
             method = "moving_average"
 
+        model_display_names = {
+            "arima": "ARIMA(1,1,1)",
+            "moving_average": "3-Month Moving Average",
+            "insufficient_data": "Insufficient Data",
+        }
+
         return Response({
             "historical": [
                 {"month": label, "expense": expense}
@@ -317,7 +323,7 @@ class ExpenseForecastView(APIView):
                 "method": method,
             },
             "model_info": {
-                "name": "ARIMA(1,1,1)",
+                "name": model_display_names.get(method, method),
                 "what_it_means": (
                     "ARIMA looks at your past monthly expenses as a time series. "
                     "The AR(1) part says next month is influenced by this month. "

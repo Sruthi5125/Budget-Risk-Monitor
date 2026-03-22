@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'accounts',
     'transactions',
     'analytics',
+    'kpi',
 ]
 
 MIDDLEWARE = [
