@@ -290,7 +290,10 @@ class ExpenseForecastView(APIView):
             try:
                 from statsmodels.tsa.arima.model import ARIMA
 
-                data = np.array(monthly_expenses, dtype=float)
+                # Trim leading zeros so ARIMA sees a clean consecutive series
+                first_nonzero = next(i for i, x in enumerate(monthly_expenses) if x > 0)
+                trimmed = monthly_expenses[first_nonzero:]
+                data = np.array(trimmed, dtype=float)
                 # ARIMA(1,1,1): one lag, first-order differencing, one MA term
                 model = ARIMA(data, order=(1, 1, 1))
                 fitted = model.fit()
