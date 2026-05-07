@@ -132,7 +132,7 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")
-CORS_ALLOWED_ORIGINS = [url.strip() for url in FRONTEND_URL.split(",") if url.strip()]
+CORS_ALLOWED_ORIGINS = [url.strip().rstrip("/") for url in FRONTEND_URL.split(",") if url.strip()]
 
 from datetime import timedelta
 
