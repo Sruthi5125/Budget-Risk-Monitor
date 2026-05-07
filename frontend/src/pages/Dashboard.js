@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import {
   PieChart,
   Pie,
-  Cell,
   Tooltip,
   Legend,
   LineChart,
@@ -178,11 +177,8 @@ function Dashboard() {
               outerRadius={120}
               fill="#6366f1"
               label
-            >
-              {analysis.category_breakdown.map((entry, index) => (
-                <Cell key={`cell-${index}`} />
-              ))}
-            </Pie>
+            />
+
             <Tooltip />
             <Legend />
           </PieChart>
@@ -246,17 +242,6 @@ function Dashboard() {
             )}
           </div>
 
-          {/* ML Concept Explanation Card */}
-          {forecast && forecast.forecast.method !== "insufficient_data" && (
-            <div className="card">
-              <div className="card-title">How does this work?</div>
-              <p style={{ lineHeight: "1.7" }}>{forecast.model_info.what_it_means}</p>
-              <p style={{ marginTop: "10px", fontSize: "13px", color: "#888" }}>
-                <strong>ARIMA(p, d, q)</strong> &mdash; p=1 (use last month's value), d=1 (remove trend),
-                q=1 (smooth out one-time spikes). Falls back to a moving average if data is limited.
-              </p>
-            </div>
-          )}
         </>
       )}
 
@@ -315,7 +300,7 @@ function Dashboard() {
                         )}
                         {kpi.projected !== null && kpi.target !== null && (
                           <span style={{ color: "#6b7280", fontSize: "12px" }}>
-                            {" "}(Projected: \u20B9{kpi.projected})
+                            {" "}(Projected: ₹{kpi.projected})
                           </span>
                         )}
                       </p>
@@ -344,7 +329,7 @@ function Dashboard() {
             <div className="card-title">Set KPI Targets</div>
             <div className="form-group">
               <label style={{ fontSize: "13px", color: "#6b7280" }}>
-                Monthly Expense Limit (\u20B9)
+                Monthly Expense Limit (₹)
               </label>
               <input
                 type="number"
@@ -355,7 +340,7 @@ function Dashboard() {
             </div>
             <div className="form-group">
               <label style={{ fontSize: "13px", color: "#6b7280" }}>
-                Minimum Monthly Savings (\u20B9)
+                Minimum Monthly Savings (₹)
               </label>
               <input
                 type="number"
@@ -407,7 +392,12 @@ function Dashboard() {
       {/* ---------------- ADD TRANSACTION TAB ---------------- */}
       {activeTab === "add" && (
         <div className="card">
-          <AddTransaction onTransactionAdded={fetchData} />
+          <AddTransaction
+            onTransactionAdded={async () => {
+              await fetchData();
+              setActiveTab("overview");
+            }}
+          />
         </div>
       )}
 

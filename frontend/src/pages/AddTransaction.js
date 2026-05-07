@@ -42,7 +42,6 @@ function AddTransaction({ onTransactionAdded }) {
     }
   }, [token]);
 
-  /* ---------------- FETCH TRANSACTIONS (all pages) ---------------- */
   const fetchTransactions = useCallback(async () => {
     try {
       let all = [];
